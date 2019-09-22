@@ -1,0 +1,5 @@
+{
+    message: "This certifies that d-winch completed the mazebot race in 9.881 seconds.",
+    elapsed: 9.881,
+    completed: "2019-08-14T23:34:17.307Z"
+}
