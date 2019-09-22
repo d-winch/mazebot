@@ -11,13 +11,8 @@ class Node:
         self.possible_directions = possible_directions
         self.is_dead_end = len(possible_directions) == 1
         self.distance_from_end = abs(self.end_location[0] - x) + abs(self.end_location[1] - y)
+        # Not really needed in our case as squares are 1x1
         #self.distance_from_end = math.sqrt(abs(x - self.end_location[0]) ** 2 + abs(y - self.end_location[1]))
-
-    #def set_possible_directions(self, possible_directions):
-    #    self.possible_directions = possible_directions
-
-    #def get_possible_directions(self):
-    #    return self.possible_directions
 
     def remove_dead(self, dead):
         for k, v in self.possible_directions.copy().items():
