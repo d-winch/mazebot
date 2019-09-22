@@ -4,45 +4,48 @@ import json
 from node import Node
 import sys
 
-def get_nodes(map):
+def get_nodes(node_map):
+    
+    # Create empty dict to store node objects
     nodes = {}
-    for y, row in enumerate(map):
+    
+    for y, row in enumerate(node_map):
         for x, cell in enumerate(row):
 
-            directions = {}
-
-            #if cell in ['A', 'B', 'X']:
+            # If cell is X, we can't visit it
             if cell == 'X':
                 continue
+
+            # Create a dict to store possible movement
+            directions = {}
 
             # If not the first row
             if y > 0:
                 # Can we move North?
-                if map[y-1][x] != 'X':
+                if node_map[y-1][x] != 'X':
                     directions['N'] = (x,y-1)
 
             # If not the last row
-            if y < len(map)-1:
+            if y < len(node_map)-1:
                 # Can we move South?
-                if map[y+1][x] != 'X':
+                if node_map[y+1][x] != 'X':
                     directions['S'] = (x,y+1)
 
             # If not the first column
             if x > 0:
                 # Can we move West?
-                if map[y][x-1] != 'X':
+                if node_map[y][x-1] != 'X':
                     directions['W'] = (x-1,y)
 
             # If not the last column
             if x < len(row)-1:
                 # Can we move East?
-                if map[y][x+1] != 'X':
+                if node_map[y][x+1] != 'X':
                     directions['E'] = (x+1,y)
 
+            # Create a new node object and add it to our node dict
             n = Node(x, y, directions)
             nodes[x,y] = n
-
-            #possible_directions[x,y] = directions
 
     return nodes
 
@@ -63,9 +66,8 @@ def traverse(traversable_nodes):
     open_nodes = set([start])
     came_from = {}
     dirs = {}
-    i = 0
+    
     while len(open_nodes) > 0:
-        i = i+1
 
         current = None
         current_f_score = None
@@ -75,15 +77,15 @@ def traverse(traversable_nodes):
                 current_f_score = F[node]
                 current = node
 
-        # If we're at the end, return!
+        # If we're at the end, return the directions taken
         if list(current) == Node.end_location:
 
-            print("Open",sys.getsizeof(open_nodes))
-            print("Came From",sys.getsizeof(came_from))
-            print("F",sys.getsizeof(F))
-            print("G",sys.getsizeof(G))
+            #print("Open",sys.getsizeof(open_nodes))
+            #print("Came From",sys.getsizeof(came_from))
+            #print("F",sys.getsizeof(F))
+            #print("G",sys.getsizeof(G))
 
-            #Retrace our route backward
+            # Reverse our directions taken
             directions_taken = [dirs[current]]
             while current in came_from:
                 current = came_from[current]
@@ -91,25 +93,25 @@ def traverse(traversable_nodes):
                     direction_taken = dirs[current]
                     directions_taken.append(direction_taken)
             directions_taken.reverse()
-            print(i)
             return directions_taken
 
-        #Mark the current vertex as closed
+        # We're finished with this node
         open_nodes.remove(current)
         closed_nodes.add(current)
 
-        #Update scores for vertices near the current position
+        # Update scores for possible neighbour movements
         for direction, neighbour in nodes[current].possible_directions.items():
             if neighbour in closed_nodes:
-                continue #We have already processed this node exhaustively
+                continue # We've already tested this node and removed it
+            
             candidate_g = G[current] + Node.move_cost
 
             if neighbour not in open_nodes:
-                open_nodes.add(neighbour) #Discovered a new vertex
+                open_nodes.add(neighbour) # New possible path
             elif candidate_g >= G[neighbour]:
-                continue #This G score is worse than previously found
+                continue # This G score is worse than previous
 
-            #Adopt this G score
+            # Adopt this G score
             came_from[neighbour] = current
             G[neighbour] = candidate_g
 
@@ -119,23 +121,22 @@ def traverse(traversable_nodes):
 
 if __name__ == '__main__':
 
-    # Best cert = /mazebot/race/certificate/Wln6EJuKH27oGmvl6TYDPy3lyBkxTpHIEIh2nR_mtqNUyUd_VeCesDU86IHS89DY
-    # 9.881 /mazebot/race/certificate/GC81T6AIkPZDXWpP2wJiEBMZkEBNTJE-lVc67OMFLdA
+    # Best cert = 9.881 /mazebot/race/certificate/GC81T6AIkPZDXWpP2wJiEBMZkEBNTJE-lVc67OMFLdA
 
-    api = 'https://api.noopschallenge.com'
+    BASE_URL = 'https://api.noopschallenge.com'
     user_details = {'login': 'd-winch'}
-    response = requests.get(api+'/mazebot/race').json()
-    print(response)
-    response = requests.post(api+'/mazebot/race/start', json=user_details).json()
-    print(response)
+    response = requests.get(f'{BASE_URL}/mazebot/race').json()
+    print(response['message'])
+    response = requests.post(f'{BASE_URL}/mazebot/race/start', json=user_details).json()
+    print(response['message'])
     
     while 'nextMaze' in response:
-        maze = requests.get(api+response['nextMaze']).json()
+        maze = requests.get(f"{BASE_URL}{response['nextMaze']}").json()
 
-        map = np.array( maze['map'] )
+        node_map = np.array( maze['map'] )
         Node.end_location = maze['endingPosition']
 
-        traversable_nodes = get_nodes(map)
+        traversable_nodes = get_nodes(node_map)
 
         solution = traverse(traversable_nodes)
 
@@ -143,5 +144,5 @@ if __name__ == '__main__':
             "directions": ''.join(solution)
             }
 
-        response = requests.post(api+maze['mazePath'],json=solution_submission).json()
+        response = requests.post(f"{BASE_URL}{maze['mazePath']}",json=solution_submission).json()
         print(response)
